@@ -10,6 +10,7 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
 
     let ROTATE_SHIP = CGFloat(3)
     let SPACE_BAR = UInt16(49)
+    let GRAVITY = CGFloat(-20)
     let cameraNode = SCNNode()
     var ship : SCNNode?
 
@@ -49,7 +50,7 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
     }
 
     func whereAmI() -> SCNVector3 {
-        print("euler \(self.ship!.presentationNode.eulerAngles)")
+//        print("euler \(self.ship!.presentationNode.eulerAngles)")
         let s = self.ship!.presentationNode.eulerAngles
         return s
     }
@@ -57,27 +58,39 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
     func facing(node:SCNNode, face:Direction) -> SCNVector3 {
 
         let c = self.whereAmI()
-        print("euler: " + String(c))
+//        print("euler: " + String(c))
         var x,y,z : CGFloat
         switch(face) {
             case .front:
-                x = sin(c.y)
-                y = sin(c.x) * sin(c.z)
-                z = cos(c.y) * cos(c.x)
-            case .back:
                 x = -sin(c.y)
-                y = -sin(c.x) * sin(-c.z)
+                y = -sin(c.x) * sin(c.z)
                 z = -cos(c.y) * cos(c.x)
-            case .up:
+            case .back:
                 x = sin(c.y)
+                y = sin(c.x) * sin(-c.z)
+                z = cos(c.y) * cos(c.x)
+            case .up:
+                x = sin(c.z)
                 y = cos(c.x) * cos(c.z)
-                z = sin(c.x) * sin(c.y)
+                z = sin(c.x)
             default:
                 x = 0.0
                 y = 0.0
                 z = 0.0
         }
-        return SCNVector3(x, y, z)
+
+        x = normalize(x)
+        y = normalize(y) / (y + 0.1)
+        z = normalize(z)
+        
+        return SCNVector3(x,y,z)
+    }
+
+    func normalize(v:CGFloat) -> CGFloat {
+        let k = CGFloat(5.0)
+        let s = CGFloat(v < 0 ? -1.0 : 1.0)
+        let r = floor(abs(v*k)) * s
+        return r
     }
 
     func loadNode(path:String) -> SCNNode {
@@ -100,7 +113,7 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
     override func awakeFromNib(){
         super.awakeFromNib()
         self.makeScene()
-//        self.gameView.delegate = self
+        self.gameView.delegate = self
     }
 
     func makeLight(scene:SCNScene) {
@@ -121,7 +134,7 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
         scene.rootNode.addChildNode(ambientLightNode)
     }
 
-    func makeShip() {
+    func xmakeShip() {
         self.ship = loadNode("star-wars-vader-tie-fighter 2")
 //        self.ship = loadNode("quad-bot")
         ship!.position.y += 10
@@ -163,13 +176,19 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
         boxNode.position = SCNVector3(x: 0, y: 15.0, z: 0)
         boxNode.addChildNode(ballNode)
         
-        
         self.addNodeToRoot(boxNode)
         ship = boxNode
     }
 
-    func renderer(aRenderer: SCNSceneRenderer, didSimulatePhysicsAtTime time: NSTimeInterval){
-
+    func stabilize(node:SCNNode) {
+        
+    }
+    
+    func renderer(aRenderer: SCNSceneRenderer, didSimulatePhysicsAtTime time: NSTimeInterval) {
+        
+        stabilize(self.ship!)
+        
+/*
 //        let cameraDamping = Float(0.3)
 
         let car: SCNNode = ship!.presentationNode
@@ -182,58 +201,33 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
 //        cameraPos = vector_mix(cameraPos, targetPos, vector_float3(cameraDamping))
         self.cameraNode.position = SCNVector3FromFloat3(targetPos)
 //        self.cameraNode.eulerAngles.y = 1
+*/
     }
+ 
     
-    func makeCamera1() {
+    func makeCamera() {
         let camera = SCNCamera()
+        camera.automaticallyAdjustsZRange = true
         let cameraNode = SCNNode() // remove
         cameraNode.camera = camera
         cameraNode.position = SCNVector3(x: 0, y: 10, z: 50)
         
-        ship!.addChildNode(cameraNode)
-    }
-    
-    func makeCamera() {
-        let camera = SCNCamera()
-//        camera.usesOrthographicProjection = true
-//        camera.orthographicScale = 9
-//        camera.zNear = 0
-//        camera.zFar = 100000
-        camera.automaticallyAdjustsZRange = true
-        cameraNode.position = SCNVector3(x: 0, y: 0, z: 50)
-        cameraNode.camera = camera
-
-        self.addNodeToRoot(cameraNode)
-}
-    
-    // follows
-    func makeCamera0() {
-        let camera = SCNCamera()
-        camera.usesOrthographicProjection = true
-        camera.orthographicScale = 9
-        camera.zNear = 0
-        camera.zFar = 100
-        let cameraNode = SCNNode() // remove
-        cameraNode.position = SCNVector3(x:0, y:100, z:50)
+        let constraint = SCNLookAtConstraint(target: ship!)
+        constraint.gimbalLockEnabled = true
+        cameraNode.constraints = [constraint]
         
-//        cameraNode.transform = CATransform3DRotate(cameraNode.transform, CGFloat(-M_PI)/7.0, 1, 0, 0)
-//        cameraNode.eulerAngles.x -= CGFloat(M_PI_4)
-//        cameraNode.eulerAngles.y -= CGFloat(M_PI_4*3)
-
-        cameraNode.camera = camera
-//        self.addNodeToRoot(cameraNode)
-        self.addNodeToRoot(cameraNode)
+        ship!.addChildNode(cameraNode)
     }
 
     func makeScene() {
 
         let scene = SCNScene()
+        scene.physicsWorld.gravity = SCNVector3(0,GRAVITY,0)
         
         self.gameView!.scene = scene
         self.makeSetting()
-//        self.makeShip()
         self.makeRobot()
-        self.makeCamera1()
+        self.makeCamera()
         self.makeLight(scene)
         self.makeGround()
         self.gameView!.allowsCameraControl = true
