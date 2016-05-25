@@ -10,7 +10,7 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
 
     let ROTATE_SHIP = CGFloat(3)
     let SPACE_BAR = UInt16(49)
-    let GRAVITY = CGFloat(-20)
+    let GRAVITY = CGFloat(-10)
     let cameraNode = SCNNode()
     var ship : SCNNode?
 
@@ -82,7 +82,7 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
         x = normalize(x)
         y = normalize(y) / (y + 0.1)
         z = normalize(z)
-        
+
         return SCNVector3(x,y,z)
     }
 
@@ -142,9 +142,9 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
         ship?.presentationNode.eulerAngles.y = ROTATE_SHIP
         self.addNodeToRoot(ship!)
     }
-    
+
     func makeSetting() {
-        
+
         for _ in 1...10 {
             let height = CGFloat(drand48() * 100)
             let x = CGFloat(drand48() * 200) - 100
@@ -153,18 +153,18 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
             let boxNode = SCNNode(geometry: boxGeometry)
             boxNode.physicsBody = SCNPhysicsBody(type: .Dynamic, shape: nil)
             boxNode.position = SCNVector3(x: x, y: 0, z: z)
-            
+
             self.addNodeToRoot(boxNode)
         }
     }
-    
+
     func makeRobot() {
 
         let ballGeometry = SCNSphere(radius: 3.0)
         let ballNode = SCNNode(geometry: ballGeometry)
         ballNode.physicsBody = SCNPhysicsBody(type: .Static, shape: nil)
         ballNode.position = SCNVector3(x: 0, y: 5, z: 0)
-        
+
         let boxGeometry = SCNBox(width: 10.0, height: 10.0, length: 10.0, chamferRadius: 1.0)
         let myStar = SCNMaterial()
         let image = NSImage(named: "tile")
@@ -175,19 +175,27 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
         boxNode.physicsBody = SCNPhysicsBody(type: .Dynamic, shape: nil)
         boxNode.position = SCNVector3(x: 0, y: 15.0, z: 0)
         boxNode.addChildNode(ballNode)
-        
+
         self.addNodeToRoot(boxNode)
         ship = boxNode
     }
 
     func stabilize(node:SCNNode) {
-        
+        let c = self.whereAmI()
+//        print("euler \(self.ship!.presentationNode.eulerAngles)")
+        let t = SCNVector4(-c.x/2,0,-c.z/2,0.5)
+        self.ship!.physicsBody?.applyTorque(t, impulse:true)
+
     }
     
-    func renderer(aRenderer: SCNSceneRenderer, didSimulatePhysicsAtTime time: NSTimeInterval) {
-        
+    func renderer(renderer: SCNSceneRenderer, updateAtTime time: NSTimeInterval) {
         stabilize(self.ship!)
-        
+    }
+
+    func xrenderer(aRenderer: SCNSceneRenderer, didSimulatePhysicsAtTime time: NSTimeInterval) {
+
+        stabilize(self.ship!)
+
 /*
 //        let cameraDamping = Float(0.3)
 
@@ -203,19 +211,19 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
 //        self.cameraNode.eulerAngles.y = 1
 */
     }
- 
-    
+
+
     func makeCamera() {
         let camera = SCNCamera()
         camera.automaticallyAdjustsZRange = true
         let cameraNode = SCNNode() // remove
         cameraNode.camera = camera
         cameraNode.position = SCNVector3(x: 0, y: 10, z: 50)
-        
+
         let constraint = SCNLookAtConstraint(target: ship!)
         constraint.gimbalLockEnabled = true
         cameraNode.constraints = [constraint]
-        
+
         ship!.addChildNode(cameraNode)
     }
 
@@ -223,7 +231,7 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
 
         let scene = SCNScene()
         scene.physicsWorld.gravity = SCNVector3(0,GRAVITY,0)
-        
+
         self.gameView!.scene = scene
         self.makeSetting()
         self.makeRobot()
@@ -238,7 +246,7 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
     func addNodeToRoot(node:SCNNode) {
         self.gameView!.scene?.rootNode.addChildNode(node)
     }
-    
+
     func makeGround() {
         let groundGeometry = SCNFloor()
         groundGeometry.reflectivity = 1
