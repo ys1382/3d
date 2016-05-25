@@ -9,8 +9,12 @@ import QuartzCore
 class GameViewController: NSViewController, SCNSceneRendererDelegate {
 
     let ROTATE_SHIP = CGFloat(3)
-    let SPACE_BAR = UInt16(49)
     let GRAVITY = CGFloat(-10)
+    let KEY_SPACE = UInt16(49)
+    let KEY_W = UInt16(13)
+    let KEY_A = UInt16(0)
+    let KEY_S = UInt16(1)
+    let KEY_D = UInt16(2)
     let cameraNode = SCNNode()
     var ship : SCNNode?
 
@@ -26,12 +30,26 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
     @IBOutlet weak var gameView: GameView!
 
     override func keyDown(theEvent: NSEvent) {
-        interpretKeyEvents([theEvent])
-        if theEvent.keyCode == SPACE_BAR {
-            let d = facing(self.ship!, face:.up)
-            self.ship!.physicsBody?.applyForce(d, impulse:true)
+        
+        switch theEvent.keyCode {
+            case KEY_W:
+                self.moveTowards(.up)
+            case KEY_A:
+                self.moveTowards(.left)
+            case KEY_S:
+                self.moveTowards(.down)
+            case KEY_D:
+                self.moveTowards(.right)
+            default:
+                interpretKeyEvents([theEvent])
         }
     }
+
+    func moveTowards(direction:Direction) {
+        let d = facing(self.ship!, face:direction)
+        self.ship!.physicsBody?.applyForce(d, impulse:true)
+    }
+
     override func moveUp(sender: AnyObject?) {
         let d = facing(self.ship!, face:.front)
         self.ship!.physicsBody?.applyForce(d, impulse:true)
@@ -73,23 +91,35 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
                 x = sin(c.z)
                 y = cos(c.x) * cos(c.z)
                 z = sin(c.x)
-            default:
-                x = 0.0
-                y = 0.0
-                z = 0.0
+            case .down:
+                x = -sin(c.z)
+                y = -cos(c.x) * cos(c.z)
+                z = -sin(c.x)
+//                print("y = " + String(y))
+            case .right:
+                x = cos(c.z) * cos(c.y)
+                y = sin(c.x) * sin(c.z)
+                z = sin(c.x) * sin(c.y)
+            case .left:
+                x = -cos(c.z) * cos(c.y)
+                y = -sin(c.x) * sin(c.z)
+                z = -sin(c.x) * sin(c.y)
         }
 
         x = normalize(x)
-        y = normalize(y) / (y + 0.1)
+        y = normalize(y) / abs(y + 0.1) // takes off faster
         z = normalize(z)
 
+//        print("3v = " + String(SCNVector3(x,y,z)))
         return SCNVector3(x,y,z)
     }
 
+    // I forget what this does but it's probably useful
     func normalize(v:CGFloat) -> CGFloat {
         let k = CGFloat(5.0)
         let s = CGFloat(v < 0 ? -1.0 : 1.0)
         let r = floor(abs(v*k)) * s
+//        print("r = " + String(r))
         return r
     }
 
@@ -136,7 +166,6 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
 
     func xmakeShip() {
         self.ship = loadNode("star-wars-vader-tie-fighter 2")
-//        self.ship = loadNode("quad-bot")
         ship!.position.y += 10
         ship!.physicsBody = SCNPhysicsBody(type: .Dynamic, shape: nil)
         ship?.presentationNode.eulerAngles.y = ROTATE_SHIP
@@ -182,10 +211,8 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
 
     func stabilize(node:SCNNode) {
         let c = self.whereAmI()
-//        print("euler \(self.ship!.presentationNode.eulerAngles)")
         let t = SCNVector4(-c.x/2,0,-c.z/2,0.5)
         self.ship!.physicsBody?.applyTorque(t, impulse:true)
-
     }
     
     func renderer(renderer: SCNSceneRenderer, updateAtTime time: NSTimeInterval) {
@@ -193,9 +220,6 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
     }
 
     func xrenderer(aRenderer: SCNSceneRenderer, didSimulatePhysicsAtTime time: NSTimeInterval) {
-
-        stabilize(self.ship!)
-
 /*
 //        let cameraDamping = Float(0.3)
 
