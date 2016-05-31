@@ -9,7 +9,7 @@ import QuartzCore
 class GameViewController: NSViewController, SCNSceneRendererDelegate {
 
     let ROTATE_SHIP = CGFloat(3)
-    let GRAVITY = CGFloat(-10)
+    let GRAVITY = CGFloat(-5)
     let KEY_SPACE = UInt16(49)
     let KEY_W = UInt16(13)
     let KEY_A = UInt16(0)
@@ -172,14 +172,50 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
         self.addNodeToRoot(ship!)
     }
 
+    func cgfrand(range:Int) -> CGFloat {
+        return CGFloat(drand48() * Double(range))
+    }
+
+    func randomShape() -> SCNGeometry {
+        let p0 = cgfrand(100)
+        let p1 = cgfrand(100)
+        let p2 = cgfrand(100)
+        let p3 = cgfrand(100)
+        let h = cgfrand(500)
+
+        let geometries = [SCNSphere(radius:p0),
+            SCNPlane(width: p0, height: h),
+            SCNBox(width: p0, height: h, length: p2, chamferRadius: p3),
+            SCNPyramid(width: p0, height: h, length: p2),
+            SCNCylinder(radius: p0, height: h),
+            SCNCone(topRadius: p0, bottomRadius: p1, height: p2),
+            SCNTorus(ringRadius: p0, pipeRadius: p1),
+            SCNTube(innerRadius: p0, outerRadius: p1, height: p2),
+            SCNCapsule(capRadius: p0, height: h/2.0)]
+
+        let geoIndex = Int(drand48() * Double(geometries.count))
+        let geometry = geometries[geoIndex]
+        let hue = CGFloat(drand48())
+        let color = NSColor(hue: hue, saturation: 1.0, brightness: 1.0, alpha: 1.0)
+        geometry.firstMaterial?.diffuse.contents = color
+        return geometry
+    }
+
     func makeSetting() {
 
-        for _ in 1...10 {
-            let height = CGFloat(drand48() * 100)
-            let x = CGFloat(drand48() * 200) - 100
-            let z = CGFloat(drand48() * 200) - 100
-            let boxGeometry = SCNBox(width: 10.0, height: height, length: 10.0, chamferRadius: 1.0)
-            let boxNode = SCNNode(geometry: boxGeometry)
+        for _ in 1...1000 {
+            
+            
+            let geometry = randomShape()
+
+//            let height = CGFloat(drand48() * 1000)
+            let x = CGFloat(drand48() * 5000) - 2500
+            let z = CGFloat(drand48() * 5000) - 2500
+//            let s = CGFloat(drand48() * 100)
+//            let geometry = SCNBox(width: s, height: height, length: s, chamferRadius: 1.0)
+            let boxNode = SCNNode(geometry: geometry)
+
+            
             boxNode.physicsBody = SCNPhysicsBody(type: .Dynamic, shape: nil)
             boxNode.position = SCNVector3(x: x, y: 0, z: z)
 
@@ -201,7 +237,9 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
         myStar.diffuse.contents = image
         boxGeometry.materials = [myStar]
         let boxNode = SCNNode(geometry: boxGeometry)
-        boxNode.physicsBody = SCNPhysicsBody(type: .Dynamic, shape: nil)
+        let p = SCNPhysicsBody(type: .Dynamic, shape: nil)
+        p.angularDamping = CGFloat(0.5)
+        boxNode.physicsBody = p
         boxNode.position = SCNVector3(x: 0, y: 15.0, z: 0)
         boxNode.addChildNode(ballNode)
 
@@ -211,7 +249,7 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
 
     func stabilize(node:SCNNode) {
         let c = self.whereAmI()
-        let t = SCNVector4(-c.x/2,0,-c.z/2,0.5)
+        let t = SCNVector4(-c.x,0,-c.z,1)
         self.ship!.physicsBody?.applyTorque(t, impulse:true)
     }
     
@@ -255,6 +293,12 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
 
         let scene = SCNScene()
         scene.physicsWorld.gravity = SCNVector3(0,GRAVITY,0)
+        scene.background.contents = NSImage(named: "sky0")/* as NSImage!,
+                                     NSImage(named: "sky1") as NSImage!,
+                                     NSImage(named: "sky2") as NSImage!,
+                                     NSImage(named: "sky3") as NSImage!,
+                                     NSImage(named: "sky4") as NSImage!,
+                                     NSImage(named: "sky5") as NSImage!]*/
 
         self.gameView!.scene = scene
         self.makeSetting()
@@ -273,7 +317,7 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
 
     func makeGround() {
         let groundGeometry = SCNFloor()
-        groundGeometry.reflectivity = 1
+        groundGeometry.reflectivity = 0.5
         let groundMaterial = SCNMaterial()
         groundMaterial.diffuse.contents = NSColor.blueColor()
         groundGeometry.materials = [groundMaterial]
