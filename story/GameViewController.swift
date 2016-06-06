@@ -9,7 +9,7 @@ import QuartzCore
 class GameViewController: NSViewController, SCNSceneRendererDelegate {
 
     let ROTATE_SHIP = CGFloat(3)
-    let GRAVITY     = CGFloat(-5)
+    let GRAVITY     = CGFloat(-10)
 
     let KEY_SPACE   = UInt16(49)
     let KEY_W       = UInt16(13)
@@ -20,6 +20,12 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
     let KEY_DOWN    = UInt16(125)
     let KEY_RIGHT   = UInt16(123)
     let KEY_LEFT    = UInt16(124)
+    let KEY_I       = UInt16(34)
+    let KEY_J       = UInt16(38)
+    let KEY_K       = UInt16(40)
+    let KEY_L       = UInt16(37)
+    let KEY_M       = UInt16(46)
+    
     
     let cameraNode = SCNNode()
     var ship : SCNNode?
@@ -37,6 +43,7 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
 
     override func keyDown(theEvent: NSEvent) {
         
+        print("key \(theEvent.keyCode)")
         switch theEvent.keyCode {
             case KEY_W:     self.moveTowards(.up)
             case KEY_A:     self.moveTowards(.left)
@@ -46,8 +53,13 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
             case KEY_DOWN:  self.moveTowards(.back)
             case KEY_LEFT:  self.turn(.left)
             case KEY_RIGHT: self.turn(.right)
-            default:
-                interpretKeyEvents([theEvent])
+            case KEY_I:     self.turnCamera(.up)
+            case KEY_J:     self.turnCamera(.left)
+            case KEY_K:     self.turnCamera(.back)
+            case KEY_L:     self.turnCamera(.right)
+            case KEY_M:     self.turnCamera(.down)
+            case KEY_SPACE:   self.turnCamera(.front)
+            default: interpretKeyEvents([theEvent])
         }
     }
 
@@ -56,6 +68,19 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
         self.ship!.physicsBody?.applyForce(d, impulse:true)
     }
     
+    func turnCamera(direction:Direction) {
+        var x=CGFloat(0), y=x, z=y
+        switch(direction) {
+            case .front:    break
+            case .back:     y = CGFloat(M_PI)
+            case .right:    y = CGFloat(M_PI_2)
+            case .left:     y = -CGFloat(M_PI_2)
+            case .up:       x = CGFloat(M_PI_2)
+            case .down:     x = -CGFloat(M_PI_2)
+        }
+        self.cameraNode.eulerAngles = SCNVector3(x:x,y:y,z:z)
+    }
+
     func turn(direction:Direction) {
         var t : SCNVector4
         switch direction {
@@ -199,18 +224,13 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
         for _ in 1...1000 {
 
             let geometry = randomShape()
-
-//            let height = CGFloat(drand48() * 1000)
             let x = CGFloat(drand48() * 5000) - 2500
             let z = CGFloat(drand48() * 5000) - 2500
-//            let s = CGFloat(drand48() * 100)
-//            let geometry = SCNBox(width: s, height: height, length: s, chamferRadius: 1.0)
-            let boxNode = SCNNode(geometry: geometry)
-            
-            boxNode.physicsBody = SCNPhysicsBody(type: .Dynamic, shape: nil)
-            boxNode.position = SCNVector3(x: x, y: 0, z: z)
+            let shapeNode = SCNNode(geometry: geometry)
+            shapeNode.physicsBody = SCNPhysicsBody(type: .Dynamic, shape: nil)
+            shapeNode.position = SCNVector3(x: x, y: 0, z: z)
 
-            self.addNodeToRoot(boxNode)
+            self.addNodeToRoot(shapeNode)
         }
     }
 
@@ -239,23 +259,9 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
         ship = boxNode
     }
     
-    func sf2(x:CGFloat) -> String {
-        return String(format: "%.1f", x)
-    }
-
-    func print3(v:SCNVector3) -> String {
-        return "(" + sf2(v.x) + ", " + sf2(v.y) + ", " + sf2(v.z) + ")"
-    }
-    
-    func print4(v:SCNVector4) -> String {
-        return "(" + sf2(v.x) + ", " + sf2(v.y) + ", " + sf2(v.z) + ", " + sf2(v.w) + ")"
-    }
-    
-
     func makeCamera() {
         let camera = SCNCamera()
         camera.automaticallyAdjustsZRange = true
-        let cameraNode = SCNNode() // remove
         cameraNode.camera = camera
         cameraNode.position = SCNVector3(x: 0, y: 10, z: 50)
 

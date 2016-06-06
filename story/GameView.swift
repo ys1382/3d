@@ -19,10 +19,12 @@ class GameView: SCNView {
         // check that we clicked on at least one object
         if hitResults.count > 0 {
             // retrieved the first clicked object
-            let result: AnyObject = hitResults[0]
+            let result: SCNHitTestResult = hitResults[0]
+            
+            Swift.print("hit \(result.node.geometry!.dynamicType) at \(result.localCoordinates)")
             
             // get its material
-            let material = result.node!.geometry!.firstMaterial!
+            let material = result.node.geometry!.firstMaterial!
             
             // highlight it
             SCNTransaction.begin()
