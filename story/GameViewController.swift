@@ -43,7 +43,7 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
 
     override func keyDown(theEvent: NSEvent) {
         
-        print("key \(theEvent.keyCode)")
+//        print("key \(theEvent.keyCode)")
         switch theEvent.keyCode {
             case KEY_W:     self.moveTowards(.up)
             case KEY_A:     self.moveTowards(.left)
@@ -69,16 +69,30 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
     }
     
     func turnCamera(direction:Direction) {
+        var p=CGFloat(0), q=p, r=q
         var x=CGFloat(0), y=x, z=y
         switch(direction) {
-            case .front:    break
-            case .back:     y = CGFloat(M_PI)
-            case .right:    y = CGFloat(M_PI_2)
-            case .left:     y = -CGFloat(M_PI_2)
-            case .up:       x = CGFloat(M_PI_2)
-            case .down:     x = -CGFloat(M_PI_2)
+            case .front:
+                z = 50
+            case .back:
+                z = -50
+                q = CGFloat(M_PI)
+            case .right:
+                x = 50
+                q = CGFloat(M_PI_2)
+            case .left:
+                x = -50
+                q = -CGFloat(M_PI_2)
+            case .up:
+                y = -50
+                p = CGFloat(M_PI_2)
+            case .down:
+                y = 50
+                p = -CGFloat(M_PI_2)
         }
-        self.cameraNode.eulerAngles = SCNVector3(x:x,y:y,z:z)
+        self.cameraNode.eulerAngles = SCNVector3(x:p,y:q,z:r)
+        self.cameraNode.position = SCNVector3(x:x, y:y, z:z)
+
     }
 
     func turn(direction:Direction) {
@@ -263,7 +277,8 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
         let camera = SCNCamera()
         camera.automaticallyAdjustsZRange = true
         cameraNode.camera = camera
-        cameraNode.position = SCNVector3(x: 0, y: 10, z: 50)
+//        cameraNode.position = SCNVector3(x: 0, y: 10, z: 50)
+        self.turnCamera(.front)
 
         ship!.addChildNode(cameraNode)
     }
@@ -272,12 +287,12 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
 
         let scene = SCNScene()
         scene.physicsWorld.gravity = SCNVector3(0,GRAVITY,0)
-        scene.background.contents = NSImage(named: "sky0")/* as NSImage!,
+        scene.background.contents = [NSImage(named: "sky0") as NSImage!,
                                      NSImage(named: "sky1") as NSImage!,
                                      NSImage(named: "sky2") as NSImage!,
                                      NSImage(named: "sky3") as NSImage!,
                                      NSImage(named: "sky4") as NSImage!,
-                                     NSImage(named: "sky5") as NSImage!]*/
+                                     NSImage(named: "sky5") as NSImage!]
 
         self.gameView!.scene = scene
         self.makeSetting()
