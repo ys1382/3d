@@ -5,11 +5,12 @@
 
 import SceneKit
 import QuartzCore
+import AVFoundation
 
-class GameViewController: NSViewController, SCNSceneRendererDelegate {
+class GameViewController: NSViewController, SCNPhysicsContactDelegate {
 
     let ROTATE_SHIP = CGFloat(3)
-    let GRAVITY     = CGFloat(-10)
+    let GRAVITY     = CGFloat(-5)
 
     let KEY_SPACE   = UInt16(49)
     let KEY_W       = UInt16(13)
@@ -25,10 +26,11 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
     let KEY_K       = UInt16(40)
     let KEY_L       = UInt16(37)
     let KEY_M       = UInt16(46)
-    
-    
+
+
     let cameraNode = SCNNode()
     var ship : SCNNode?
+    var ground : SCNNode?
 
     enum Direction {
         case front
@@ -41,8 +43,25 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
 
     @IBOutlet weak var gameView: GameView!
 
-    override func keyDown(theEvent: NSEvent) {
+    var sounds = [AVAudioPlayer]()
+    func loadSounds() {
         
+        for i in 0...9 {
+            let name = "explosion" + String(i)
+            let path = NSBundle.mainBundle().pathForResource(name, ofType: "mp3")!
+            let url = NSURL(fileURLWithPath: path)
+            do {
+                let audioPlayer = try AVAudioPlayer(contentsOfURL: url)
+                audioPlayer.prepareToPlay()
+                sounds.append(audioPlayer)
+            } catch {
+                print("could not load " + name)
+            }
+        }
+    }
+    
+    override func keyDown(theEvent: NSEvent) {
+
 //        print("key \(theEvent.keyCode)")
         switch theEvent.keyCode {
             case KEY_W:     self.moveTowards(.up)
@@ -67,7 +86,7 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
         let d = facing(self.ship!, face:direction)
         self.ship!.physicsBody?.applyForce(d, impulse:true)
     }
-    
+
     func turnCamera(direction:Direction) {
         var p=CGFloat(0), q=p, r=q
         var x=CGFloat(0), y=x, z=y
@@ -104,7 +123,7 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
         }
         self.ship!.physicsBody?.applyTorque(t, impulse:true)
     }
-    
+
     func whereAmI() -> SCNVector3 {
         return self.ship!.presentationNode.eulerAngles
     }
@@ -174,8 +193,10 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
 
     override func awakeFromNib(){
         super.awakeFromNib()
+        loadSounds()
         self.makeScene()
-        self.gameView.delegate = self
+
+//        self.gameView.delegate = self
     }
 
     func makeLight(scene:SCNScene) {
@@ -196,10 +217,12 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
         scene.rootNode.addChildNode(ambientLightNode)
     }
 
-    func xmakeShip() {
+    func xmakeShix() {
         self.ship = loadNode("star-wars-vader-tie-fighter 2")
         ship!.position.y += 10
         ship!.physicsBody = SCNPhysicsBody(type: .Dynamic, shape: nil)
+        ship!.physicsBody!.categoryBitMask = CollisionTypes.Ship.rawValue
+        ship!.physicsBody?.contactTestBitMask = CollisionTypes.Shape.rawValue
         ship?.presentationNode.eulerAngles.y = ROTATE_SHIP
         self.addNodeToRoot(ship!)
     }
@@ -244,6 +267,9 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
             shapeNode.physicsBody = SCNPhysicsBody(type: .Dynamic, shape: nil)
             shapeNode.position = SCNVector3(x: x, y: 0, z: z)
 
+            shapeNode.physicsBody?.categoryBitMask = CollisionTypes.Shape.rawValue
+            shapeNode.physicsBody?.contactTestBitMask = CollisionTypes.Ship.rawValue
+
             self.addNodeToRoot(shapeNode)
         }
     }
@@ -258,7 +284,7 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
         let boxGeometry = SCNBox(width: 10.0, height: 10.0, length: 10.0, chamferRadius: 1.0)
         let myStar = SCNMaterial()
         let image = NSImage(named: "tile")
-        print("image " + String(image))
+//        print("image " + String(image))
         myStar.diffuse.contents = image
         boxGeometry.materials = [myStar]
         let boxNode = SCNNode(geometry: boxGeometry)
@@ -269,10 +295,13 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
         boxNode.position = SCNVector3(x: 0, y: 15.0, z: 0)
         boxNode.addChildNode(ballNode)
 
+        boxNode.physicsBody!.categoryBitMask = CollisionTypes.Ship.rawValue
+        boxNode.physicsBody?.contactTestBitMask = CollisionTypes.Shape.rawValue
+
         self.addNodeToRoot(boxNode)
         ship = boxNode
     }
-    
+
     func makeCamera() {
         let camera = SCNCamera()
         camera.automaticallyAdjustsZRange = true
@@ -282,11 +311,52 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
 
         ship!.addChildNode(cameraNode)
     }
+    
+    var n = 1
+
+    enum CollisionTypes: Int {
+        case Ship = 1
+        case Floor = 2
+        case Shape = 4
+    }
+    
+
+    func detectContact(contact: SCNPhysicsContact) -> SCNNode? {
+        if (ship == contact.nodeA ) {
+            return contact.nodeB
+        }
+        if (ship == contact.nodeB) {
+            return contact.nodeA
+        }
+        return nil
+    }
+    
+    func playSound() {
+        let range = sounds.count-1
+        let index = Int(arc4random_uniform(UInt32(range)))
+        let sound = sounds[index]
+        sound.play()
+    }
+
+    func physicsWorld(world: SCNPhysicsWorld, didBeginContact contact: SCNPhysicsContact) {
+        
+        if let contacted = detectContact(contact) {
+            let particleSystem = SCNParticleSystem(named: "Explosion", inDirectory: nil)
+            let systemNode = SCNNode()
+            systemNode.addParticleSystem(particleSystem!)
+            systemNode.position = contacted.position
+            self.addNodeToRoot(systemNode)
+            contacted.removeFromParentNode()
+            playSound()
+        }
+    }
 
     func makeScene() {
 
         let scene = SCNScene()
         scene.physicsWorld.gravity = SCNVector3(0,GRAVITY,0)
+        scene.physicsWorld.contactDelegate = self
+
         scene.background.contents = [NSImage(named: "sky0") as NSImage!,
                                      NSImage(named: "sky1") as NSImage!,
                                      NSImage(named: "sky2") as NSImage!,
@@ -315,12 +385,14 @@ class GameViewController: NSViewController, SCNSceneRendererDelegate {
         let groundMaterial = SCNMaterial()
         groundMaterial.diffuse.contents = NSColor.blueColor()
         groundGeometry.materials = [groundMaterial]
-        let ground = SCNNode(geometry: groundGeometry)
+        self.ground = SCNNode(geometry: groundGeometry)
 
         let groundShape = SCNPhysicsShape(geometry: groundGeometry, options: nil)
         let groundBody = SCNPhysicsBody(type: .Kinematic, shape: groundShape)
-        ground.physicsBody = groundBody
+        ground!.physicsBody = groundBody
+        ground!.physicsBody!.categoryBitMask = CollisionTypes.Floor.rawValue
+        ground!.physicsBody!.contactTestBitMask = 0
 
-        self.addNodeToRoot(ground)
+        self.addNodeToRoot(ground!)
     }
 }
