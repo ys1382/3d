@@ -60,10 +60,16 @@ class GameViewController: NSViewController, SCNPhysicsContactDelegate {
         }
     }
     
-    override func keyDown(theEvent: NSEvent) {
+    var timers = [UInt16:NSTimer]()
 
-//        print("key \(theEvent.keyCode)")
-        switch theEvent.keyCode {
+    func keyTimer(timer:NSTimer) {
+        let key = timer.userInfo as! Int
+        keyed(UInt16(key))
+    }
+    
+    func keyed(key:UInt16) -> Bool {
+        
+        switch key {
             case KEY_W:     self.moveTowards(.up)
             case KEY_A:     self.moveTowards(.left)
             case KEY_S:     self.moveTowards(.down)
@@ -78,7 +84,33 @@ class GameViewController: NSViewController, SCNPhysicsContactDelegate {
             case KEY_L:     self.turnCamera(.right)
             case KEY_M:     self.turnCamera(.down)
             case KEY_SPACE:   self.turnCamera(.front)
-            default: interpretKeyEvents([theEvent])
+            default : return false
+        }
+        return true
+    }
+    
+    override func keyDown(theEvent: NSEvent) {
+
+        let key = theEvent.keyCode
+        if timers[key] != nil {
+            return
+        }
+
+        if !keyed(key) { // if I didn't use that key then
+            interpretKeyEvents([theEvent]) // OSX can have it
+        
+            // keep repeating some keys until key-up
+        } else if [KEY_W, KEY_A, KEY_S, KEY_D, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT].contains(key) {
+            let timer = NSTimer.scheduledTimerWithTimeInterval(0.1, target: self, selector: #selector(keyTimer), userInfo: Int(key), repeats: true)
+            timers[key] = timer
+        }
+    }
+    
+    override func keyUp(theEvent: NSEvent) {
+        let key = theEvent.keyCode
+        if let timer = timers[key] {
+            timer.invalidate()
+            timers[key] = nil
         }
     }
 
