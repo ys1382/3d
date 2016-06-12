@@ -69,6 +69,7 @@ class GameViewController: NSViewController, SCNPhysicsContactDelegate {
     
     func keyed(key:UInt16) -> Bool {
         
+        print("key \(key)")
         switch key {
             case KEY_W:     self.moveTowards(.up)
             case KEY_A:     self.moveTowards(.left)
@@ -149,8 +150,8 @@ class GameViewController: NSViewController, SCNPhysicsContactDelegate {
     func turn(direction:Direction) {
         var t : SCNVector4
         switch direction {
-            case .right: t = SCNVector4(0,-1,0,-1)
-            case .left: t = SCNVector4(0,1,0,-1)
+            case .right: t = SCNVector4(0,-10,0,-1)
+            case .left: t = SCNVector4(0,10,0,-1)
             default: t = SCNVector4(0,0,0,0)
         }
         self.ship!.physicsBody?.applyTorque(t, impulse:true)
@@ -200,7 +201,7 @@ class GameViewController: NSViewController, SCNPhysicsContactDelegate {
 
     // I forget what this does but it's probably useful
     func normalize(v:CGFloat) -> CGFloat {
-        let k = CGFloat(5.0)
+        let k = CGFloat(10.0)
         let s = CGFloat(v < 0 ? -1.0 : 1.0)
         let r = floor(abs(v*k)) * s
         return r
