@@ -65,7 +65,7 @@
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <menu key="submenu" title="Shape" id="bLa-Ec-8Of">
                         <items>
-                            <menuItem title="Factory" id="aha-d7-hK2">
+                            <menuItem title="Brick" id="aha-d7-hK2">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="factory:" target="494" id="fJV-2N-hE5"/>

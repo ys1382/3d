@@ -11,12 +11,12 @@ import Cocoa
 @NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
     
-    @IBAction func factory(sender: AnyObject) {
+    @IBAction func factory(_ sender: AnyObject) {
         return
     }
     @IBOutlet weak var window: NSWindow!
     
-    func applicationDidFinishLaunching(aNotification: NSNotification) {
+    func applicationDidFinishLaunching(_ aNotification: Notification) {
         // Insert code here to initialize your application
     }
 }
